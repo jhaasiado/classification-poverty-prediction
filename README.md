@@ -10,23 +10,23 @@ End-to-end classification pipeline with modular `src` components. The workflow c
 - `src/evaluation.py` – metrics (accuracy, weighted/macro precision/recall/F1, ROC‑AUC for binary), reports to JSON/TXT.
 - `main.py` – orchestrates the full run and prints progress for each phase.
 
-## Installation
-Use a virtual environment and install via the project’s `pyproject.toml`.
+## Installation (uv by Astral)
+Use `uv` for fast, reproducible installs from `pyproject.toml`.
 
 ```bash
-python -m venv .venv
-source .venv/Scripts/activate  # Git Bash on Windows
-pip install -e .
-```
+# From the repository root
+cd classification-poverty-prediction
 
-Optional models:
-- XGBoost: `pip install xgboost`
-- LightGBM: `pip install lightgbm`
+# Create/resolve the virtual environment and install dependencies
+uv sync
+
+# (Optional) If you need extra packages ad‑hoc without editing pyproject
+uv pip install xgboost lightgbm
+```
 
 ## Run Pipeline (Git Bash)
 ```bash
-cd classification-poverty-prediction
-python main.py
+uv run python main.py
 ```
 
 You’ll see step-by-step progress lines:
