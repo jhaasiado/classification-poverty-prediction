@@ -1,0 +1,83 @@
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-json
+      - id: debug-statements
+
+  - repo: local
+    hooks:
+      - id: black
+        name: black
+        entry: black
+        language: python
+        types: [python]
+        additional_dependencies: [black==24.8.0]
+
+      - id: ruff
+        name: ruff
+        entry: ruff
+        language: python
+        types: [python]
+        args: [--fix, --show-fixes]
+        additional_dependencies: [ruff==0.6.8]
+
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: python
+        types: [python]
+        # optional: point at your package/module
+        # args: ["--strict", "src"]
+        additional_dependencies: [mypy==1.11.1]
+
+      - id: bandit
+        name: bandit
+        entry: bandit
+        language: python
+        types: [python]
+        args: ["-r", "."]
+        additional_dependencies: [bandit==1.7.9]
+
+      - id: codespell
+        name: codespell
+        entry: codespell
+        language: python
+        types: [text]
+        additional_dependencies: [codespell==2.3.0]
+
+      - id: detect-secrets
+        name: detect-secrets
+        entry: detect-secrets
+        language: python
+        types: [text]
+        # run once to create baseline: `uvx detect-secrets scan > .secrets.baseline`
+        args: ["--baseline", ".secrets.baseline"]
+        additional_dependencies: [detect-secrets==1.5.0]
+
+      - id: nbstripout
+        name: nbstripout
+        entry: nbstripout
+        language: python
+        files: "\\.ipynb$"
+        additional_dependencies: [nbstripout==0.7.1]
+
+      - id: nbqa-black
+        name: nbqa-black
+        entry: nbqa black
+        language: python
+        files: "\\.ipynb$"
+        additional_dependencies: [nbqa==1.9.0, black==24.8.0]
+
+      - id: nbqa-ruff
+        name: nbqa-ruff
+        entry: nbqa ruff
+        language: python
+        files: "\\.ipynb$"
+        additional_dependencies: [nbqa==1.9.0, ruff==0.6.8]

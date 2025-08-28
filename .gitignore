@@ -1,0 +1,20 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Notebooks misc
+.ipynb_checkpoints/
+
+# Data and outputs (avoid committing large files)
+data/
+artifacts/
+reports/
+
+# Virtual envs
+.venv/
+venv/
+
+# OS files
+.DS_Store
+Thumbs.db
