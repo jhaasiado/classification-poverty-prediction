@@ -18,3 +18,11 @@ venv/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Processed Data, Logs, and Models
+**/data/**.csv
+**/data/**.dta
+**/logs/**
+**/models/**.joblib
+**/reports/**.csv
+**/reports/**.txt

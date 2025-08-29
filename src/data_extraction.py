@@ -139,13 +139,14 @@ def _configure_logging() -> None:
         )
 
 
-def main(argv: Optional[list[str]] = None) -> None:
+def data_extraction(argv: Optional[list[str]] = None) -> None:
     _configure_logging()
     parser = _build_argparser()
     args = parser.parse_args(argv)
 
     if args.use_default:
         df = load_default_data()
+        df = basic_clean(df)
     else:
         if not args.input:
             parser.error("--input is required unless --use-default is provided")
@@ -161,4 +162,4 @@ def main(argv: Optional[list[str]] = None) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    data_extraction()

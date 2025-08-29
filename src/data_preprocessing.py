@@ -22,6 +22,8 @@ from pandas.api.types import is_numeric_dtype
 
 from .data_extraction import load_data, write_data
 
+import mlflow
+from mlflow.models.signature import infer_signature
 
 LOGGER = logging.getLogger(__name__)
 
@@ -255,8 +257,8 @@ def _build_argparser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: Optional[list[str]] = None) -> None:
-    _configure_logging()
+def preprocess_data(argv: Optional[list[str]] = None) -> None:
+    # _configure_logging()
     args = _build_argparser().parse_args(argv)
 
     df = load_data(args.input, fmt=args.input_format, convert_categoricals=False)
@@ -269,19 +271,44 @@ def main(argv: Optional[list[str]] = None) -> None:
     )
     df_out = pre.fit_transform(df)
 
-    # Report and artifacts
-    if args.report:
-        report = pre.build_report(df, df_out)
-        out_path = Path(args.report)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(report.to_json(), encoding="utf-8")
-        LOGGER.info("Wrote preprocessing report", extra={"path": str(out_path)})
+    mlflow.set_tracking_uri("http://mlflow:5000")
+    mlflow.set_experiment("Poverty Prediction")
+    # MLflow logging
+    with mlflow.start_run(run_name="data_preprocessing"):
+        # Log parameters
+        mlflow.log_param("missing_threshold", args.missing_threshold)
+        mlflow.log_param("categorical_fill_value", args.categorical_fill)
+        mlflow.log_param("drop_constant", not args.no_drop_constant)
+        mlflow.log_param("cast_categorical", not args.no_cast_categorical)
+        mlflow.log_param("input_path", args.input)
+        mlflow.log_param("output_path", args.output)
 
-    if args.artifact:
-        pre.save(args.artifact)
+        # Log artifacts: preprocessor state and report if available
+        if args.artifact:
+            pre.save(args.artifact)
+            mlflow.log_artifact(args.artifact, artifact_path="preprocessor")
+
+        # Optionally log report
+        if args.report:
+            report = pre.build_report(df, df_out)
+            out_path = Path(args.report)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(report.to_json(), encoding="utf-8")
+            mlflow.log_artifact(str(out_path), artifact_path="reports")
+            LOGGER.info("Wrote preprocessing report", extra={"path": str(out_path)})
+
+        # Log output data sample as artifact (first 100 rows)
+        sample_path = Path(args.output).with_suffix(".sample.csv")
+        df_out.head(100).to_csv(sample_path, index=False)
+        mlflow.log_artifact(str(sample_path), artifact_path="samples")
+
+        # Log schema/signature
+        signature = infer_signature(df, df_out)
+        mlflow.log_dict(signature.to_dict(), "signature.json")
+
 
     write_data(df_out, args.output)
 
 
 if __name__ == "__main__":
-    main()
+    preprocess_data()
