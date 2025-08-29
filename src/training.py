@@ -1,4 +1,5 @@
 import os
+import re
 import datetime
 from typing import Dict, List, Optional
 import argparse
@@ -114,6 +115,10 @@ def _build_argparser() -> argparse.ArgumentParser:
     p.add_argument("--output", required=True, help="Directory to save trained models")
     return p
 
+def make_mlflow_safe(name: str) -> str:
+    # Remove spaces, colons, periods, and other disallowed characters
+    return re.sub(r'[ /:%"\']', '_', name)
+
 def model_training(argv: Optional[list[str]] = None) -> None:
     args = _build_argparser().parse_args(argv)
 
@@ -128,11 +133,11 @@ def model_training(argv: Optional[list[str]] = None) -> None:
     for name, model in get_models().items():
         LOGGER.info("Model ready", extra={"model": name, "estimator": str(model)})
         pipe = Pipeline(steps=[("model", model)])
-        run_name = name + "-" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        with mlflow.start_run(run_name=run_name):
+        # run_name = name + "-" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with mlflow.start_run(run_name=name):
             pipe.fit(X_train, y_train)
-            fitted[run_name] = pipe
+            fitted[name] = pipe
             mlflow.log_params(model.get_params())
             signature = infer_signature(X_train, y_train)
-            mlflow.sklearn.log_model(pipe, run_name.replace(" ", "_"), signature=signature)
+            mlflow.sklearn.log_model(pipe, name.replace(" ", "_"), signature=signature)
     # save_models(fitted, args.output)

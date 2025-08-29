@@ -171,12 +171,19 @@ def model_evaluation(argv: Optional[list[str]] = None) -> None:
 
         # Log metrics to MLflow
         with mlflow.start_run(run_id=run_id):
-            mlflow.log_metrics({k: v for k, v in metrics.items() if isinstance(v, (int, float))})
+            numeric_metrics = {k: v for k, v in metrics.items() if isinstance(v, (int, float)) and v is not None}
+            mlflow.log_metrics(numeric_metrics)
+
+            # Save classification report as TXT artifact
+            report_path = os.path.join(args.output, f"{name}_classification_report.txt")
+            with open(report_path, "w", encoding="utf-8") as f:
+                f.write(metrics["report"])
+            mlflow.log_artifact(report_path, artifact_path="reports")
             # Save confusion matrix as artifact
-            cm_path = os.path.join(args.output, f"{name}_confusion_matrix.json")
-            with open(cm_path, "w", encoding="utf-8") as f:
-                json.dump(metrics["confusion_matrix"], f)
-            mlflow.log_artifact(cm_path, artifact_path="confusion_matrices")
+            # cm_path = os.path.join(args.output, f"{name}_confusion_matrix.json")
+            # with open(cm_path, "w", encoding="utf-8") as f:
+            #     json.dump(metrics["confusion_matrix"], f)
+            # mlflow.log_artifact(cm_path, artifact_path="confusion_matrices")
 
     # model_paths = {p.stem: p for p in Path(args.models_dict).glob("*.joblib")}
     # results = {}
