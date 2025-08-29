@@ -286,8 +286,6 @@ def preprocess_data(argv: Optional[list[str]] = None) -> None:
         # Log artifacts: preprocessor state and report if available
         if args.artifact:
             pre.save(args.artifact)
-            mlflow.log_artifact(args.artifact, artifact_path="preprocessor")
-
         # Optionally log report
         if args.report:
             report = pre.build_report(df, df_out)

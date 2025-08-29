@@ -6,6 +6,8 @@ from typing import Any, Dict, Optional
 import joblib
 import numpy as np
 import os
+import numbers
+from sklearn import metrics
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -153,37 +155,46 @@ def model_evaluation(argv: Optional[list[str]] = None) -> None:
 
     # List all runs in the experiment
     experiment = mlflow.get_experiment_by_name("Poverty Prediction")
-    runs = client.search_runs(experiment_ids=[experiment.experiment_id], order_by=["attributes.start_time DESC"])
+    runs = client.search_runs(
+        experiment_ids=[experiment.experiment_id],
+        order_by=["attributes.start_time DESC"]
+    )
 
     for run in runs:
         run_id = run.info.run_id
-        model_uri = f"runs:/{run_id}/model"
+        name = run.data.tags.get("mlflow.runName", run_id)
+        LOGGER.info("Evaluating model", extra={"model": name})
+        model_uri = f"runs:/{run_id}/{name.replace(' ', '_')}"
         try:
             model = mlflow.sklearn.load_model(model_uri)
         except Exception as e:
             LOGGER.warning(f"Could not load model for run {run_id}: {e}")
             continue
 
-        name = run.data.tags.get("mlflow.runName", run_id)
-        LOGGER.info("Evaluating model", extra={"model": name})
         metrics = evaluate_model(name, model, X_test, y_test)
         results[name] = metrics
 
-        # Log metrics to MLflow
+
+        # Filter only numeric metrics
+        numeric_metrics = {k: float(v) for k, v in metrics.items() if isinstance(v, numbers.Number)}
+
         with mlflow.start_run(run_id=run_id):
-            numeric_metrics = {k: v for k, v in metrics.items() if isinstance(v, (int, float)) and v is not None}
             mlflow.log_metrics(numeric_metrics)
 
-            # Save classification report as TXT artifact
-            report_path = os.path.join(args.output, f"{name}_classification_report.txt")
-            with open(report_path, "w", encoding="utf-8") as f:
-                f.write(metrics["report"])
-            mlflow.log_artifact(report_path, artifact_path="reports")
-            # Save confusion matrix as artifact
-            # cm_path = os.path.join(args.output, f"{name}_confusion_matrix.json")
-            # with open(cm_path, "w", encoding="utf-8") as f:
-            #     json.dump(metrics["confusion_matrix"], f)
-            # mlflow.log_artifact(cm_path, artifact_path="confusion_matrices")
+        # Log metrics using MlflowClient (works for completed runs)
+        # numeric_metrics = {k: v for k, v in metrics.items() if isinstance(v, (int, float)) and v is not None}
+        # for metric_name, metric_value in numeric_metrics.items():
+        #     client.log_metric(run_id, metric_name, metric_value)
+
+        # Save classification report locally
+        # report_path = os.path.join(args.output, f"{name}_classification_report.txt")
+        # os.makedirs(args.output, exist_ok=True)
+        # with open(report_path, "w", encoding="utf-8") as f:
+        #     f.write(metrics["report"])
+
+        # Log artifact via a nested run (since parent run may be finished)
+        # with mlflow.start_run(run_id=run_id, nested=True):
+        #     mlflow.log_artifact(report_path, artifact_path="reports")
 
     # model_paths = {p.stem: p for p in Path(args.models_dict).glob("*.joblib")}
     # results = {}
